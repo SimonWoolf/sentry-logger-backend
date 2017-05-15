@@ -32,7 +32,7 @@ defmodule SentryLoggerBackend do
   def handle_event({level, _, {Logger, msg, timestamp, metadata}}, state = %{level: min_level}) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
       Sentry.capture_message(msg, [
-        level: level,
+        level: normalise_level(level),
         extra: metadata
                |> Enum.map(&stringify_values/1)
                |> Enum.into(Map.new)
@@ -62,4 +62,8 @@ defmodule SentryLoggerBackend do
   # Avoid quote marks around string vals, but otherwise inspect
   defp stringify_values({k, v}) when is_binary(v), do: {k, v}
   defp stringify_values({k, v}), do: {k, inspect(v)}
+
+  # Sentry doesn't understand :warn
+  defp normalise_level(:warn), do: :warning
+  defp normalise_level(other), do: other
 end
