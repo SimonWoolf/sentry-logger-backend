@@ -33,6 +33,7 @@ defmodule SentryLoggerBackend.Mixfile do
   defp deps do
     [
       {:sentry, "~> 4.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
 end
