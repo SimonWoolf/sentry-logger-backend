@@ -1,7 +1,6 @@
 # SentryLoggerBackend
 
-Provides a `Logger` backend for Sentry. This will automatically
-submit Error level Logger events to Sentry.
+Provides a `Logger` backend for Sentry, to automatically submit Logger events above a configurable threshold to Sentry
 
 ## Installation
 
@@ -19,8 +18,12 @@ end
 config :logger, backends: [:console, SentryLoggerBackend]
 ```
 
-To set the level threshold (defaults to :error):
+3. Set the level threshold (defaults to :error):
 
 ```elixir
 config :logger, SentryLoggerBackend, level: :error
 ```
+
+## License
+
+This project is licensed under the MIT License.
