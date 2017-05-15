@@ -33,7 +33,9 @@ defmodule SentryLoggerBackend do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
       Sentry.capture_message(msg, [
         level: level,
-        extra: Enum.into(metadata, Map.new)
+        extra: metadata
+               |> Enum.map(&stringify_values/1)
+               |> Enum.into(Map.new)
       ])
     end
 
@@ -56,4 +58,8 @@ defmodule SentryLoggerBackend do
   defp meet_level?(lvl, min) do
     Logger.compare_levels(lvl, min) != :lt
   end
+
+  # Avoid quote marks around string vals, but otherwise inspect
+  defp stringify_values({k, v}) when is_binary(v), do: {k, v}
+  defp stringify_values({k, v}), do: {k, inspect(v)}
 end
