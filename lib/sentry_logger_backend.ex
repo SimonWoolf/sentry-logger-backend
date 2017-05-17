@@ -31,7 +31,7 @@ defmodule SentryLoggerBackend do
 
   def handle_event({level, _, {Logger, msg, _timestamp, metadata}}, state = %{level: min_level}) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
-      Sentry.capture_message(msg, [
+      Sentry.capture_message(to_string(msg), [
         level: normalise_level(level),
         extra: metadata
                |> Enum.map(&stringify_values/1)
