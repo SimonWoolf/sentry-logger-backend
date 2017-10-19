@@ -31,16 +31,20 @@ defmodule SentryLoggerBackend do
 
   def handle_event({level, _, {Logger, msg, _timestamp, metadata}}, state = %{level: min_level}) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
-      opts = case Keyword.pop(metadata, :fingerprint) do
-        {nil, remaining} -> [
-            level: normalise_level(level),
-            extra: process_metadata(remaining)
-          ]
-        {fingerprint, remaining} -> [
-            level: normalise_level(level),
+      opts = case {is_otp_crash(msg), Keyword.pop(metadata, :fingerprint)} do
+        {false, {nil, remaining}} ->
+          [ level: normalise_level(level),
+            extra: process_metadata(remaining) ]
+
+        {true, {nil, remaining}} ->
+          [ level: normalise_level(level),
+            fingerprint: extract_fingerprint_from_otp_crash(msg),
+            extra: process_metadata(remaining) ]
+
+        {_, {fingerprint, remaining}} ->
+          [ level: normalise_level(level),
             fingerprint: Enum.map(fingerprint, &to_string/1),
-            extra: process_metadata(remaining)
-          ]
+            extra: process_metadata(remaining) ]
       end
       Sentry.capture_message(to_string(msg), opts)
     end
@@ -69,6 +73,14 @@ defmodule SentryLoggerBackend do
 
   defp meet_level?(lvl, min) do
     Logger.compare_levels(lvl, min) != :lt
+  end
+
+  defp is_otp_crash(msg) do
+    String.starts_with? msg, "Error in process"
+  end
+
+  defp extract_fingerprint_from_otp_crash(msg) do
+    Regex.run ~r/file: [^\]]*/, to_string(msg)
   end
 
   # Avoid quote marks around string vals, but otherwise inspect
