@@ -31,12 +31,18 @@ defmodule SentryLoggerBackend do
 
   def handle_event({level, _, {Logger, msg, _timestamp, metadata}}, state = %{level: min_level}) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
-      Sentry.capture_message(to_string(msg), [
-        level: normalise_level(level),
-        extra: metadata
-               |> Enum.map(&stringify_values/1)
-               |> Enum.into(Map.new)
-      ])
+      opts = case Keyword.pop(metadata, :fingerprint) do
+        {nil, remaining} -> [
+            level: normalise_level(level),
+            extra: process_metadata(remaining)
+          ]
+        {fingerprint, remaining} -> [
+            level: normalise_level(level),
+            fingerprint: Enum.map(fingerprint, &to_string/1),
+            extra: process_metadata(remaining)
+          ]
+      end
+      Sentry.capture_message(to_string(msg), opts)
     end
 
     {:ok, state}
@@ -53,6 +59,12 @@ defmodule SentryLoggerBackend do
     Application.put_env(:logger, __MODULE__, config)
 
     %__MODULE__{state | level: config[:level]}
+  end
+
+  defp process_metadata(metadata) do
+    metadata
+    |> Enum.map(&stringify_values/1)
+    |> Enum.into(Map.new)
   end
 
   defp meet_level?(lvl, min) do
