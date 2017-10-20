@@ -31,6 +31,7 @@ defmodule SentryLoggerBackend do
 
   def handle_event({level, _, {Logger, msg, _timestamp, metadata}}, state = %{level: min_level}) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
+      msg = to_string(msg)
       opts = case {is_otp_crash(msg), Keyword.pop(metadata, :fingerprint)} do
         {false, {nil, remaining}} ->
           [ level: normalise_level(level),
@@ -46,7 +47,7 @@ defmodule SentryLoggerBackend do
             fingerprint: Enum.map(fingerprint, &to_string/1),
             extra: process_metadata(remaining) ]
       end
-      Sentry.capture_message(to_string(msg), opts)
+      Sentry.capture_message(msg, opts)
     end
 
     {:ok, state}
@@ -80,7 +81,7 @@ defmodule SentryLoggerBackend do
   end
 
   defp extract_fingerprint_from_otp_crash(msg) do
-    Regex.run ~r/file: [^\]]*/, to_string(msg)
+    Regex.run ~r/file: [^\]]*/, msg
   end
 
   # Avoid quote marks around string vals, but otherwise inspect
