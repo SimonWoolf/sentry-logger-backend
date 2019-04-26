@@ -63,7 +63,7 @@ defmodule SentryLoggerBackend do
       |> Keyword.merge(opts)
     Application.put_env(:logger, __MODULE__, config)
 
-    %__MODULE__{state | level: config[:level]}
+    %__MODULE__{state | level: config[:level] || :error}
   end
 
   defp process_metadata(metadata) do
