@@ -11,10 +11,18 @@ defmodule SentryLoggerBackend do
     To set the level threshold:
 
         config :logger, SentryLoggerBackend, level: :error
+
+    To set a fingerprint function:
+
+        # The `process` function here takes 2 arguments:
+        # 1. any metadata received from logger for `fingerprint`
+        # 2. the message string from the logger
+        # It should return a list of elements that work with `to_string`
+        config :logger, SentryLoggerBackend, fingerprint: &MyApp.Fingerprinting.process/2
   """
 
   use GenEvent
-  defstruct level: :error
+  defstruct level: :error, fingerprint: nil
 
   def init(__MODULE__) do
     {:ok, configure([])}
@@ -29,12 +37,17 @@ defmodule SentryLoggerBackend do
     {:ok, state}
   end
 
-  def handle_event({level, _, {Logger, msg, _timestamp, metadata}}, state = %{level: min_level}) do
+  def handle_event(
+        {level, _, {Logger, msg, _timestamp, metadata}},
+        state = %{level: min_level, fingerprint: fingerprint_fn}
+      ) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
       msg = to_string(msg)
+      {fingerprint_meta, remaining} = Keyword.pop(metadata, :fingerprint)
+      fingerprint = fingerprint_fn.(fingerprint_meta, msg)
 
       opts =
-        case {is_otp_crash(msg), Keyword.pop(metadata, :fingerprint)} do
+        case {is_otp_crash(msg), {fingerprint, remaining}} do
           {false, {nil, remaining}} ->
             [level: normalise_level(level), extra: process_metadata(remaining)]
 
@@ -63,6 +76,9 @@ defmodule SentryLoggerBackend do
     {:ok, state}
   end
 
+  defp default_fingerprint(nil, _msg), do: nil
+  defp default_fingerprint(fingerprint_meta, _msg), do: fingerprint_meta
+
   defp configure(opts, state \\ %__MODULE__{}) do
     config =
       Application.get_env(:logger, __MODULE__, [])
@@ -70,7 +86,11 @@ defmodule SentryLoggerBackend do
 
     Application.put_env(:logger, __MODULE__, config)
 
-    %__MODULE__{state | level: config[:level] || :error}
+    %__MODULE__{
+      state
+      | level: config[:level] || :error,
+        fingerprint: config[:fingerprint] || (&default_fingerprint/2)
+    }
   end
 
   defp process_metadata(metadata) do
