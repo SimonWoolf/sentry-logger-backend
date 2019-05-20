@@ -32,21 +32,27 @@ defmodule SentryLoggerBackend do
   def handle_event({level, _, {Logger, msg, _timestamp, metadata}}, state = %{level: min_level}) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
       msg = to_string(msg)
-      opts = case {is_otp_crash(msg), Keyword.pop(metadata, :fingerprint)} do
-        {false, {nil, remaining}} ->
-          [ level: normalise_level(level),
-            extra: process_metadata(remaining) ]
 
-        {true, {nil, remaining}} ->
-          [ level: normalise_level(level),
-            fingerprint: extract_fingerprint_from_otp_crash(msg),
-            extra: process_metadata(remaining) ]
+      opts =
+        case {is_otp_crash(msg), Keyword.pop(metadata, :fingerprint)} do
+          {false, {nil, remaining}} ->
+            [level: normalise_level(level), extra: process_metadata(remaining)]
 
-        {_, {fingerprint, remaining}} ->
-          [ level: normalise_level(level),
-            fingerprint: Enum.map(fingerprint, &to_string/1),
-            extra: process_metadata(remaining) ]
-      end
+          {true, {nil, remaining}} ->
+            [
+              level: normalise_level(level),
+              fingerprint: extract_fingerprint_from_otp_crash(msg),
+              extra: process_metadata(remaining)
+            ]
+
+          {_, {fingerprint, remaining}} ->
+            [
+              level: normalise_level(level),
+              fingerprint: Enum.map(fingerprint, &to_string/1),
+              extra: process_metadata(remaining)
+            ]
+        end
+
       Sentry.capture_message(msg, opts)
     end
 
@@ -61,6 +67,7 @@ defmodule SentryLoggerBackend do
     config =
       Application.get_env(:logger, __MODULE__, [])
       |> Keyword.merge(opts)
+
     Application.put_env(:logger, __MODULE__, config)
 
     %__MODULE__{state | level: config[:level] || :error}
@@ -69,7 +76,7 @@ defmodule SentryLoggerBackend do
   defp process_metadata(metadata) do
     metadata
     |> Enum.map(&stringify_values/1)
-    |> Enum.into(Map.new)
+    |> Enum.into(Map.new())
   end
 
   defp meet_level?(lvl, min) do
@@ -77,11 +84,11 @@ defmodule SentryLoggerBackend do
   end
 
   defp is_otp_crash(msg) do
-    String.starts_with? msg, "Error in process"
+    String.starts_with?(msg, "Error in process")
   end
 
   defp extract_fingerprint_from_otp_crash(msg) do
-    Regex.run ~r/file: [^\]]*/, msg
+    Regex.run(~r/file: [^\]]*/, msg)
   end
 
   # Avoid quote marks around string vals, but otherwise inspect

@@ -2,15 +2,17 @@ defmodule SentryLoggerBackend.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :sentry_logger_backend,
-     version: "0.1.5",
-     elixir: "~> 1.2",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     description: description(),
-     package: package(),
-     source_url: "https://github.com/simonwoolf/sentry-logger-backend",
-     deps: deps()]
+    [
+      app: :sentry_logger_backend,
+      version: "0.1.5",
+      elixir: "~> 1.2",
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      description: description(),
+      package: package(),
+      source_url: "https://github.com/simonwoolf/sentry-logger-backend",
+      deps: deps()
+    ]
   end
 
   def application do
@@ -30,6 +32,7 @@ defmodule SentryLoggerBackend.Mixfile do
       }
     ]
   end
+
   defp deps do
     [
       {:sentry, ">= 4.0.0"},
