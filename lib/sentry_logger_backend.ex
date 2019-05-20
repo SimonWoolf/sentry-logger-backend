@@ -77,7 +77,7 @@ defmodule SentryLoggerBackend do
   end
 
   defp default_fingerprint(nil, _msg), do: nil
-  defp default_fingerprint(fingerprint_meta, _msg), do: fingerprint_meta
+  defp default_fingerprint(fingerprint_meta, _msg), do: [fingerprint_meta]
 
   defp configure(opts, state \\ %__MODULE__{}) do
     config =
