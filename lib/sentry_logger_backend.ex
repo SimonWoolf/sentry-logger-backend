@@ -12,13 +12,13 @@ defmodule SentryLoggerBackend do
 
         config :logger, SentryLoggerBackend, level: :error
 
-    To set a fingerprint function:
+    To set a fingerprint callback function:
 
         # The `process` function here takes 2 arguments:
         # 1. any metadata received from logger for `fingerprint`
         # 2. the message string from the logger
         # It should return a list of elements that work with `to_string`
-        config :logger, SentryLoggerBackend, fingerprint: &MyApp.Fingerprinting.process/2
+        config :logger, SentryLoggerBackend, fingerprint_callback: &MyApp.Fingerprinting.process/2
   """
 
   use GenEvent
@@ -76,8 +76,8 @@ defmodule SentryLoggerBackend do
     {:ok, state}
   end
 
-  defp default_fingerprint(nil, _msg), do: nil
-  defp default_fingerprint(fingerprint_meta, _msg), do: fingerprint_meta
+  defp default_fingerprint_callback(nil, _msg), do: nil
+  defp default_fingerprint_callback(fingerprint_meta, _msg), do: fingerprint_meta
 
   defp configure(opts, state \\ %__MODULE__{}) do
     config =
@@ -89,7 +89,7 @@ defmodule SentryLoggerBackend do
     %__MODULE__{
       state
       | level: config[:level] || :error,
-        fingerprint: config[:fingerprint] || (&default_fingerprint/2)
+        fingerprint_callback: config[:fingerprint_callback] || (&default_fingerprint_callback/2)
     }
   end
 
