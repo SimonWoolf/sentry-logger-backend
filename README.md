@@ -24,6 +24,14 @@ config :logger, backends: [:console, SentryLoggerBackend]
 config :logger, SentryLoggerBackend, level: :error
 ```
 
+## Fingerprints
+
+Can supply a custom fingerprint to a Logger call with the `fingerprint` metadata, which should be a `list(String.t)` (see [Sentry's documentation](https://docs.sentry.io/data-management/rollups/?platform=javascript#custom-grouping) for more info). For example:
+
+```elixir
+Logger.warn "oh no - #{debugging data that's different each time}", fingerprint: ["oh-no"]
+```
+
 ## Please note if setting level to :warn, :info, or :debug
 
 The current version of elixir-sentry [logs problems encountered while posting to sentry at the `:warn` level](https://github.com/getsentry/sentry-elixir/blob/50ef065b6ad1c7eb5c92633f001083b0ac60c793/lib/sentry/client.ex#L163-L165).
