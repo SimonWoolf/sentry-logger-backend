@@ -22,7 +22,7 @@ defmodule SentryLoggerBackend do
   """
 
   use GenEvent
-  defstruct level: :error, fingerprint: nil
+  defstruct level: :error, fingerprint_callback: nil
 
   def init(__MODULE__) do
     {:ok, configure([])}
@@ -39,12 +39,12 @@ defmodule SentryLoggerBackend do
 
   def handle_event(
         {level, _, {Logger, msg, _timestamp, metadata}},
-        state = %{level: min_level, fingerprint: fingerprint_fn}
+        state = %{level: min_level, fingerprint_callback: fingerprint_callback}
       ) do
     if meet_level?(level, min_level) && !metadata[:skip_sentry] do
       msg = to_string(msg)
       {fingerprint_meta, remaining} = Keyword.pop(metadata, :fingerprint)
-      fingerprint = fingerprint_fn.(fingerprint_meta, msg)
+      fingerprint = fingerprint_callback.(fingerprint_meta, msg)
 
       opts =
         case {is_otp_crash(msg), {fingerprint, remaining}} do
@@ -77,7 +77,7 @@ defmodule SentryLoggerBackend do
   end
 
   defp default_fingerprint(nil, _msg), do: nil
-  defp default_fingerprint(fingerprint_meta, _msg), do: [fingerprint_meta]
+  defp default_fingerprint(fingerprint_meta, _msg), do: fingerprint_meta
 
   defp configure(opts, state \\ %__MODULE__{}) do
     config =
