@@ -1,3 +1,7 @@
+## Deprecation notice
+
+**As of sentry-elixir 7.0, Sentry now ship their own Sentry.LoggerBackend (including in 8.0 the ability to sent non-exception messages to Sentry), which should be used instead of this. As a result this project is now deprecated. Users are recommended to migrate to the new official Sentry.LoggerBackend as and when they upgrade their sentry-elixir version.**
+
 # SentryLoggerBackend
 
 Provides a `Logger` backend for Sentry, to automatically submit Logger events above a configurable threshold to Sentry
